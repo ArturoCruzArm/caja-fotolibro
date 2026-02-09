@@ -90,17 +90,6 @@
             color: rgba(212,175,55,0.2);
         }
 
-        /* Album iframe */
-        #album-frame {
-            position: fixed; inset: 0; z-index: 20;
-            border: none; width: 100%; height: 100%;
-            opacity: 0; pointer-events: none;
-            transition: opacity 0.8s ease;
-        }
-        #album-frame.visible {
-            opacity: 1; pointer-events: auto;
-        }
-
         /* Mini caja en esquina */
         .corner-box {
             position: fixed; bottom: 20px; left: 20px; z-index: 30;
@@ -181,8 +170,6 @@
         <div class="brand-footer">Desarrollado por Arturo Cruz &mdash; <a href="https://foro7.invitados.org" target="_blank" style="color:rgba(212,175,55,0.35);text-decoration:none;">Producciones Foro 7</a></div>
     </div>
 
-    <iframe id="album-frame" src="about:blank"></iframe>
-
     <div class="corner-box" id="cornerBox" onclick="closeBox()">
         <canvas id="corner-canvas" width="96" height="96"></canvas>
         <div class="corner-text">
@@ -198,7 +185,7 @@
     // =============================================
     let scene, camera, renderer;
     let boxGroup, lidGroup;
-    let lidAngle = 0, targetLidAngle = 0;
+    let lidLift = 0, targetLidLift = 0;
     let autoRotate = true;
     let mouseDown = false, prevMouse = { x: 0, y: 0 };
     let rotY = -0.3, rotX = -0.2;
@@ -250,6 +237,22 @@
         return tex;
     }
 
+    // Detectar si podemos dibujar imagenes en canvas sin taint
+    let canUseImageInCanvas = false;
+    function testCanvasImage() {
+        if (!coverImage) return;
+        try {
+            const tc = document.createElement('canvas');
+            tc.width = 2; tc.height = 2;
+            const tx = tc.getContext('2d');
+            tx.drawImage(coverImage, 0, 0, 2, 2);
+            tx.getImageData(0, 0, 1, 1); // throws if tainted
+            canUseImageInCanvas = true;
+        } catch(e) {
+            canUseImageInCanvas = false;
+        }
+    }
+
     // Textura de la tapa con foto
     function createLidTexture() {
         const TEX = 800;
@@ -283,8 +286,8 @@
             ctx.beginPath(); ctx.moveTo(x, y+dy*20); ctx.lineTo(x, y); ctx.lineTo(x+dx*20, y); ctx.stroke();
         });
 
-        // Foto central
-        if (coverImage) {
+        // Foto central (solo si no tainted)
+        if (coverImage && canUseImageInCanvas) {
             const pad = 80;
             const photoSize = TEX - pad * 2;
             const imgRatio = coverImage.width / coverImage.height;
@@ -292,11 +295,19 @@
             if (imgRatio > 1) { sw = sh; sx = (coverImage.width - sw) / 2; }
             else if (imgRatio < 1) { sh = sw; sy = (coverImage.height - sh) / 2; }
 
-            // Borde dorado de la foto
             ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 3;
             ctx.strokeRect(pad - 4, pad - 4, photoSize + 8, photoSize + 8);
-
             ctx.drawImage(coverImage, sx, sy, sw, sh, pad, pad, photoSize, photoSize);
+        } else if (coverImage) {
+            // Placeholder: marco dorado con texto
+            const pad = 80;
+            const photoSize = TEX - pad * 2;
+            ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 3;
+            ctx.strokeRect(pad - 4, pad - 4, photoSize + 8, photoSize + 8);
+            ctx.fillStyle = '#1a0f10';
+            ctx.fillRect(pad, pad, photoSize, photoSize);
+            ctx.fillStyle = 'rgba(212,175,55,0.3)'; ctx.font = '24px serif'; ctx.textAlign = 'center';
+            ctx.fillText('FOTOLIBRO', TEX / 2, TEX / 2);
         }
 
         // Texto debajo de la foto
@@ -351,17 +362,17 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.outputEncoding = THREE.sRGBEncoding;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.1;
+        renderer.toneMappingExposure = 0.9;
 
         // Luces
         scene.add(new THREE.AmbientLight(0x8080a0, 0.4));
-        const mainLight = new THREE.DirectionalLight(0xfff8e7, 0.9);
+        const mainLight = new THREE.DirectionalLight(0xffffff, 0.8);
         mainLight.position.set(5, 8, 5);
         mainLight.castShadow = true;
         mainLight.shadow.mapSize.set(2048, 2048);
         scene.add(mainLight);
 
-        const goldLight = new THREE.PointLight(0xd4af37, 0.6, 25);
+        const goldLight = new THREE.PointLight(0xd4af37, 0.3, 20);
         goldLight.position.set(-4, 3, 4); scene.add(goldLight);
         const rimLight = new THREE.PointLight(0xffffff, 0.3, 15);
         rimLight.position.set(0, -2, 6); scene.add(rimLight);
@@ -466,10 +477,85 @@
         botEdge.position.y = -BH / 2 - WALL / 2;
         boxGroup.add(botEdge);
 
-        // --- TAPA (se abre como bisagra atras) ---
+        // --- FOTOLIBRO CERRADO dentro de la caja ---
+        const albumW = BW - WALL * 6;
+        const albumD = BD - WALL * 6;
+        const albumH = 0.45;
+        const albumY = -BH / 2 + WALL / 2 + albumH / 2 + 0.02;
+
+        // Cuerpo del album (piel oscura morada)
+        const albumBodyMat = new THREE.MeshPhongMaterial({
+            color: 0x1a0a20, specular: 0x332244, shininess: 20
+        });
+        const albumBody = new THREE.Mesh(
+            new THREE.BoxGeometry(albumW, albumH, albumD), albumBodyMat
+        );
+        albumBody.position.y = albumY;
+        boxGroup.add(albumBody);
+
+        // Portada (cara superior) con textura procedural
+        (function() {
+            const TEX = 512;
+            const cc = document.createElement('canvas');
+            cc.width = TEX; cc.height = TEX;
+            const cx = cc.getContext('2d');
+
+            // Fondo piel oscura
+            cx.fillStyle = '#1a0a20';
+            cx.fillRect(0, 0, TEX, TEX);
+            // Grano sutil
+            for (let i = 0; i < 8000; i++) {
+                cx.fillStyle = 'rgba(255,255,255,' + (Math.random() * 0.03) + ')';
+                cx.fillRect(Math.random() * TEX, Math.random() * TEX, 1, 1);
+            }
+
+            // Marco dorado fino
+            cx.strokeStyle = '#b8962e'; cx.lineWidth = 2;
+            cx.strokeRect(20, 20, TEX - 40, TEX - 40);
+
+            // Foto de portada (solo si no tainted)
+            if (coverImage && canUseImageInCanvas) {
+                const pad = 40;
+                const photoW = TEX - pad * 2;
+                const photoH = TEX - pad * 2 - 30;
+                const s = Math.min(coverImage.width, coverImage.height);
+                cx.drawImage(coverImage, (coverImage.width - s) / 2, 0, s, s, pad, pad, photoW, photoH);
+            }
+
+            // Texto
+            cx.fillStyle = '#b8962e'; cx.font = 'bold 20px serif';
+            cx.textAlign = 'center';
+            cx.fillText('XV AÑOS NAOMI', TEX / 2, TEX - 25);
+
+            const coverTex = new THREE.CanvasTexture(cc);
+            const coverPlane = new THREE.Mesh(
+                new THREE.PlaneGeometry(albumW - 0.05, albumD - 0.05),
+                new THREE.MeshPhongMaterial({ map: coverTex, specular: 0x111111, shininess: 8 })
+            );
+            coverPlane.rotation.x = -Math.PI / 2;
+            coverPlane.position.y = albumY + albumH / 2 + 0.005;
+            boxGroup.add(coverPlane);
+        })();
+
+        // Lomo del album (borde izquierdo, dorado sutil)
+        const albumSpine = new THREE.Mesh(
+            new THREE.BoxGeometry(0.05, albumH + 0.01, albumD - 0.1),
+            new THREE.MeshPhongMaterial({ color: 0x8a7030, specular: 0x443322, shininess: 30 })
+        );
+        albumSpine.position.set(-albumW / 2 + 0.025, albumY, 0);
+        boxGroup.add(albumSpine);
+
+        // Paginas visibles (borde derecho, crema)
+        const pagesEdge = new THREE.Mesh(
+            new THREE.BoxGeometry(0.03, albumH - 0.06, albumD - 0.2),
+            new THREE.MeshPhongMaterial({ color: 0xe8e0d0, specular: 0x111111, shininess: 3 })
+        );
+        pagesEdge.position.set(albumW / 2 - 0.015, albumY, 0);
+        boxGroup.add(pagesEdge);
+
+        // --- TAPA (pieza separada que se levanta) ---
         lidGroup = new THREE.Group();
-        // La bisagra esta en el borde trasero (z = -BD/2)
-        lidGroup.position.set(0, BH / 2, -BD / 2);
+        lidGroup.position.set(0, BH / 2 + LH / 2, 0);
 
         const lidTex = createLidTexture();
         // Cuerpo de la tapa
@@ -477,7 +563,6 @@
             new THREE.BoxGeometry(BW + 0.06, LH, BD + 0.06),
             leatherMat
         );
-        lidBody.position.set(0, LH / 2, BD / 2);
         lidGroup.add(lidBody);
 
         // Foto/decoracion en la cara superior de la tapa
@@ -486,7 +571,7 @@
             new THREE.MeshPhongMaterial({ map: lidTex, specular: 0x222211, shininess: 10 })
         );
         lidTop.rotation.x = -Math.PI / 2;
-        lidTop.position.set(0, LH + 0.005, BD / 2);
+        lidTop.position.set(0, LH / 2 + 0.005, 0);
         lidGroup.add(lidTop);
 
         // Interior tapa (terciopelo)
@@ -494,7 +579,7 @@
             new THREE.PlaneGeometry(BW - 0.2, BD - 0.2), velvetMat
         );
         lidInner.rotation.x = Math.PI / 2;
-        lidInner.position.set(0, 0.005, BD / 2);
+        lidInner.position.set(0, -LH / 2 + 0.005, 0);
         lidGroup.add(lidInner);
 
         // Borde dorado tapa
@@ -502,7 +587,6 @@
             new THREE.EdgesGeometry(new THREE.BoxGeometry(BW + 0.06, LH, BD + 0.06)),
             new THREE.LineBasicMaterial({ color: 0xd4af37, transparent: true, opacity: 0.5 })
         );
-        lidEdges.position.set(0, LH / 2, BD / 2);
         lidGroup.add(lidEdges);
 
         boxGroup.add(lidGroup);
@@ -549,28 +633,16 @@
         boxOpened = true;
         autoRotate = false;
 
-        // Rotar a posicion frontal
-        targetRotY = 0;
-        targetRotX = -0.4;
+        // Levantar tapa
+        targetLidLift = 3.5;
 
-        // Abrir tapa
-        targetLidAngle = -Math.PI * 0.75;
+        // Ocultar hint de abrir
+        document.getElementById('openHint').style.opacity = '0';
 
-        // Despues de la animacion de apertura, mostrar album
+        // Despues de la animacion de apertura, mostrar boton cerrar
         setTimeout(() => {
-            // Ocultar UI de caja
-            document.getElementById('boxUI').classList.add('hidden');
-            document.getElementById('box-canvas').style.transition = 'opacity 0.8s';
-            document.getElementById('box-canvas').style.opacity = '0';
-
-            // Mostrar album
-            const frame = document.getElementById('album-frame');
-            frame.src = 'https://fotolibro.invitados.org/';
-            setTimeout(() => {
-                frame.classList.add('visible');
-                document.getElementById('cornerBox').classList.add('visible');
-                isTransitioning = false;
-            }, 400);
+            document.getElementById('cornerBox').classList.add('visible');
+            isTransitioning = false;
         }, 1800);
     }
 
@@ -578,22 +650,17 @@
         if (!boxOpened || isTransitioning) return;
         isTransitioning = true;
 
-        // Ocultar album y corner
-        document.getElementById('album-frame').classList.remove('visible');
+        // Ocultar corner
         document.getElementById('cornerBox').classList.remove('visible');
 
         setTimeout(() => {
-            document.getElementById('album-frame').src = 'about:blank';
 
-            // Mostrar caja de nuevo
-            document.getElementById('box-canvas').style.opacity = '1';
-            document.getElementById('boxUI').classList.remove('hidden');
-
-            // Cerrar tapa
-            targetLidAngle = 0;
+            // Bajar tapa
+            targetLidLift = 0;
             autoRotate = true;
-            targetRotY = -0.3;
-            targetRotX = -0.2;
+
+            // Restaurar hint
+            document.getElementById('openHint').style.opacity = '1';
 
             setTimeout(() => {
                 boxOpened = false;
@@ -607,17 +674,26 @@
     // =============================================
     function setupEvents() {
         const canvas = document.getElementById('box-canvas');
+        let dragDistance = 0;
+        let mouseDownPos = { x: 0, y: 0 };
 
         canvas.addEventListener('click', (e) => {
-            if (!boxOpened) openBox();
+            // Solo toggle si no fue un drag
+            if (dragDistance < 5) {
+                if (!boxOpened) openBox();
+                else closeBox();
+            }
         });
 
         canvas.addEventListener('mousedown', (e) => {
             mouseDown = true; autoRotate = false;
+            dragDistance = 0;
+            mouseDownPos = { x: e.clientX, y: e.clientY };
             prevMouse = { x: e.clientX, y: e.clientY };
         });
         document.addEventListener('mousemove', (e) => {
-            if (!mouseDown || boxOpened) return;
+            if (!mouseDown) return;
+            dragDistance += Math.abs(e.clientX - prevMouse.x) + Math.abs(e.clientY - prevMouse.y);
             targetRotY += (e.clientX - prevMouse.x) * 0.005;
             targetRotX += (e.clientY - prevMouse.y) * 0.005;
             targetRotX = Math.max(-1, Math.min(0.3, targetRotX));
@@ -627,19 +703,26 @@
 
         canvas.addEventListener('touchstart', (e) => {
             mouseDown = true; autoRotate = false;
+            dragDistance = 0;
             prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         });
         canvas.addEventListener('touchmove', (e) => {
-            if (!mouseDown || boxOpened) return;
+            if (!mouseDown) return;
+            dragDistance += Math.abs(e.touches[0].clientX - prevMouse.x) + Math.abs(e.touches[0].clientY - prevMouse.y);
             targetRotY += (e.touches[0].clientX - prevMouse.x) * 0.005;
             targetRotX += (e.touches[0].clientY - prevMouse.y) * 0.005;
             targetRotX = Math.max(-1, Math.min(0.3, targetRotX));
             prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         });
-        canvas.addEventListener('touchend', () => { mouseDown = false; });
+        canvas.addEventListener('touchend', () => {
+            if (dragDistance < 10) {
+                if (!boxOpened) openBox();
+                else closeBox();
+            }
+            mouseDown = false;
+        });
 
         canvas.addEventListener('wheel', (e) => {
-            if (boxOpened) return;
             e.preventDefault();
             targetCamDist += e.deltaY * 0.01;
             targetCamDist = Math.max(5, Math.min(16, targetCamDist));
@@ -678,10 +761,10 @@
             boxGroup.position.y = -0.3 + Math.sin(Date.now() * 0.0008) * 0.08;
         }
 
-        // Tapa
+        // Tapa (se levanta como pieza separada)
         if (lidGroup) {
-            lidAngle += (targetLidAngle - lidAngle) * 0.04;
-            lidGroup.rotation.x = lidAngle;
+            lidLift += (targetLidLift - lidLift) * 0.04;
+            lidGroup.position.y = BH / 2 + LH / 2 + lidLift;
         }
 
         // Camara
@@ -705,7 +788,7 @@
     // =============================================
     window.addEventListener('DOMContentLoaded', () => {
         const img = new Image();
-        img.onload = () => { coverImage = img; init(); };
+        img.onload = () => { coverImage = img; testCanvasImage(); init(); };
         img.onerror = () => { coverImage = null; init(); };
         img.src = 'album1/portada.jpeg';
     });
