@@ -452,12 +452,12 @@
         floorInner.position.y = -BH / 2 + WALL / 2 + 0.01;
         boxGroup.add(floorInner);
 
-        // Paredes (4)
+        // Paredes (4) — exterior piel, interior terciopelo
         const wallData = [
-            { w: BW, d: WALL, x: 0, z: BD / 2 },       // frente
-            { w: BW, d: WALL, x: 0, z: -BD / 2 },      // atras
-            { w: WALL, d: BD, x: -BW / 2, z: 0 },      // izquierda
-            { w: WALL, d: BD, x: BW / 2, z: 0 },       // derecha
+            { w: BW, d: WALL, x: 0, z: BD / 2, inner: 'z-' },    // frente
+            { w: BW, d: WALL, x: 0, z: -BD / 2, inner: 'z+' },   // atras
+            { w: WALL, d: BD, x: -BW / 2, z: 0, inner: 'x+' },   // izquierda
+            { w: WALL, d: BD, x: BW / 2, z: 0, inner: 'x-' },    // derecha
         ];
         wallData.forEach(wd => {
             const wall = new THREE.Mesh(
@@ -466,6 +466,19 @@
             wall.position.set(wd.x, 0, wd.z);
             wall.castShadow = true;
             boxGroup.add(wall);
+
+            // Cara interior de terciopelo
+            const isZ = wd.inner.startsWith('z');
+            const innerW = isZ ? (BW - WALL * 2) : (BD - WALL * 2);
+            const innerPlane = new THREE.Mesh(
+                new THREE.PlaneGeometry(innerW, BH - 0.02), velvetMat
+            );
+            innerPlane.position.set(wd.x, 0, wd.z);
+            if (wd.inner === 'z-') { innerPlane.position.z -= WALL / 2 + 0.005; innerPlane.rotation.y = Math.PI; }
+            if (wd.inner === 'z+') { innerPlane.position.z += WALL / 2 + 0.005; }
+            if (wd.inner === 'x+') { innerPlane.position.x += WALL / 2 + 0.005; innerPlane.rotation.y = Math.PI / 2; }
+            if (wd.inner === 'x-') { innerPlane.position.x -= WALL / 2 + 0.005; innerPlane.rotation.y = -Math.PI / 2; }
+            boxGroup.add(innerPlane);
         });
 
         // Bordes dorados en la base
