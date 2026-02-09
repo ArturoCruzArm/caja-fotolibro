@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Album XV Naomi - Producciones Foro 7</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230a0a0f'/%3E%3Cpath d='M7 6h8v20H7a2 2 0 01-2-2V8a2 2 0 012-2z' fill='%23d4af37'/%3E%3Cpath d='M15 6h10a2 2 0 012 2v16a2 2 0 01-2 2H15V6z' fill='%23b8860b'/%3E%3Cpath d='M15 6v20' stroke='%23fff8e7' stroke-width='0.5'/%3E%3Ctext x='20' y='19' font-size='8' font-family='serif' fill='%23fff8e7' text-anchor='middle'%3EXV%3C/text%3E%3C/svg%3E">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0f;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .bg-particles {
+            position: fixed; inset: 0; z-index: 0;
+            background:
+                radial-gradient(ellipse at 20% 50%, rgba(212,175,55,0.07) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 50%, rgba(255,182,193,0.06) 0%, transparent 50%);
+            animation: bg-shift 12s ease-in-out infinite alternate;
+        }
+        @keyframes bg-shift {
+            0% { filter: hue-rotate(0deg) brightness(1); }
+            100% { filter: hue-rotate(15deg) brightness(1.05); }
+        }
+
+        #box-canvas { position: fixed; inset: 0; z-index: 1; cursor: pointer; }
+
+        /* UI sobre la caja */
+        .box-ui {
+            position: fixed; inset: 0; z-index: 10;
+            pointer-events: none;
+            transition: opacity 0.6s;
+        }
+        .box-ui.hidden { opacity: 0; pointer-events: none !important; }
+        .box-ui > * { pointer-events: auto; }
+
+        .box-header {
+            position: absolute; top: 0; left: 0; right: 0;
+            padding: 20px 30px;
+            text-align: center;
+            background: linear-gradient(180deg, rgba(10,10,15,0.95), transparent);
+        }
+        .box-header h1 {
+            font-size: 1.3rem; font-weight: 300;
+            letter-spacing: 6px; color: #d4af37;
+        }
+        .box-header p {
+            font-size: 0.7rem; color: rgba(255,255,255,0.3);
+            letter-spacing: 3px; margin-top: 4px;
+        }
+
+        .open-hint {
+            position: absolute; bottom: 80px; left: 50%;
+            transform: translateX(-50%);
+            display: flex; flex-direction: column; align-items: center; gap: 12px;
+            animation: pulse-hint 2s ease-in-out infinite;
+        }
+        @keyframes pulse-hint {
+            0%, 100% { opacity: 0.6; transform: translateX(-50%) translateY(0); }
+            50% { opacity: 1; transform: translateX(-50%) translateY(-5px); }
+        }
+        .open-hint .hint-icon {
+            width: 56px; height: 56px; border-radius: 50%;
+            border: 1px solid rgba(212,175,55,0.3);
+            background: rgba(212,175,55,0.08);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem; color: #d4af37;
+            backdrop-filter: blur(10px);
+            cursor: pointer; transition: all 0.3s;
+        }
+        .open-hint .hint-icon:hover {
+            border-color: #d4af37;
+            background: rgba(212,175,55,0.2);
+            box-shadow: 0 0 25px rgba(212,175,55,0.3);
+            transform: scale(1.1);
+        }
+        .open-hint span {
+            font-size: 0.7rem; letter-spacing: 4px;
+            color: rgba(212,175,55,0.5);
+        }
+
+        .brand-footer {
+            position: absolute; bottom: 20px; left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.65rem; letter-spacing: 3px;
+            color: rgba(212,175,55,0.2);
+        }
+
+        /* Album iframe */
+        #album-frame {
+            position: fixed; inset: 0; z-index: 20;
+            border: none; width: 100%; height: 100%;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.8s ease;
+        }
+        #album-frame.visible {
+            opacity: 1; pointer-events: auto;
+        }
+
+        /* Mini caja en esquina */
+        .corner-box {
+            position: fixed; bottom: 20px; left: 20px; z-index: 30;
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 16px 8px 8px;
+            background: rgba(10,10,15,0.9);
+            border: 1px solid rgba(212,175,55,0.2);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            cursor: pointer; transition: all 0.3s;
+            opacity: 0; pointer-events: none;
+            transform: translateY(20px);
+        }
+        .corner-box.visible {
+            opacity: 1; pointer-events: auto;
+            transform: translateY(0);
+        }
+        .corner-box:hover {
+            border-color: #d4af37;
+            background: rgba(212,175,55,0.1);
+        }
+        .corner-box canvas {
+            width: 48px; height: 48px; border-radius: 6px;
+        }
+        .corner-box .corner-text {
+            display: flex; flex-direction: column; gap: 2px;
+        }
+        .corner-box .corner-text span:first-child {
+            font-size: 0.7rem; color: #d4af37; letter-spacing: 1px;
+        }
+        .corner-box .corner-text span:last-child {
+            font-size: 0.6rem; color: rgba(255,255,255,0.3);
+        }
+
+        /* Loading */
+        .loading-screen {
+            position: fixed; inset: 0; z-index: 100;
+            background: #0a0a0f;
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column; gap: 20px;
+            transition: opacity 0.8s, visibility 0.8s;
+        }
+        .loading-screen.hidden { opacity: 0; visibility: hidden; }
+        .loading-spinner {
+            width: 50px; height: 50px;
+            border: 3px solid rgba(212,175,55,0.1);
+            border-top: 3px solid #d4af37;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { font-size: 0.8rem; color: rgba(212,175,55,0.6); letter-spacing: 4px; }
+
+        @media (max-width: 768px) {
+            .box-header h1 { font-size: 1rem; letter-spacing: 4px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-particles"></div>
+
+    <div class="loading-screen" id="loader">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">PRODUCCIONES FORO 7</div>
+    </div>
+
+    <canvas id="box-canvas"></canvas>
+
+    <div class="box-ui" id="boxUI">
+        <div class="box-header">
+            <h1>XV A&Ntilde;OS NAOMI</h1>
+            <p>ALBUM PREMIUM</p>
+        </div>
+        <div class="open-hint" id="openHint">
+            <div class="hint-icon" onclick="openBox()">&#9654;</div>
+            <span>ABRIR CAJA</span>
+        </div>
+        <div class="brand-footer">PRODUCCIONES FORO 7</div>
+    </div>
+
+    <iframe id="album-frame" src="about:blank"></iframe>
+
+    <div class="corner-box" id="cornerBox" onclick="closeBox()">
+        <canvas id="corner-canvas" width="96" height="96"></canvas>
+        <div class="corner-text">
+            <span>CERRAR CAJA</span>
+            <span>Volver al inicio</span>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+    // =============================================
+    // CAJA 3D — Landing page con textura piel
+    // =============================================
+    let scene, camera, renderer;
+    let boxGroup, lidGroup;
+    let lidAngle = 0, targetLidAngle = 0;
+    let autoRotate = true;
+    let mouseDown = false, prevMouse = { x: 0, y: 0 };
+    let rotY = -0.3, rotX = -0.2;
+    let targetRotY = -0.3, targetRotX = -0.2;
+    let camDist = 9, targetCamDist = 9;
+    let boxOpened = false, isTransitioning = false;
+    let coverImage = null;
+
+    // Dimensiones de la caja (proporcional a un album de fotos)
+    const BW = 4.5;  // ancho
+    const BD = 4.5;  // profundidad (cuadrada como el album)
+    const BH = 1.2;  // alto base
+    const LH = 0.15; // grosor tapa
+    const WALL = 0.12;
+
+    // =============================================
+    // TEXTURA PIEL (procedural canvas)
+    // =============================================
+    function createLeatherTexture(w, h, baseColor) {
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        const ctx = c.getContext('2d');
+
+        // Base
+        ctx.fillStyle = baseColor || '#2a1810';
+        ctx.fillRect(0, 0, w, h);
+
+        // Grano de piel — ruido fino
+        const imgData = ctx.getImageData(0, 0, w, h);
+        const d = imgData.data;
+        for (let i = 0; i < d.length; i += 4) {
+            const noise = (Math.random() - 0.5) * 25;
+            d[i] = Math.max(0, Math.min(255, d[i] + noise));
+            d[i+1] = Math.max(0, Math.min(255, d[i+1] + noise));
+            d[i+2] = Math.max(0, Math.min(255, d[i+2] + noise));
+        }
+        ctx.putImageData(imgData, 0, 0);
+
+        // Lineas de costura sutiles
+        ctx.strokeStyle = 'rgba(212,175,55,0.12)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([6, 8]);
+        const margin = 15;
+        ctx.strokeRect(margin, margin, w - margin * 2, h - margin * 2);
+        ctx.setLineDash([]);
+
+        const tex = new THREE.CanvasTexture(c);
+        tex.encoding = THREE.sRGBEncoding;
+        return tex;
+    }
+
+    // Textura de la tapa con foto
+    function createLidTexture() {
+        const TEX = 800;
+        const c = document.createElement('canvas');
+        c.width = TEX; c.height = TEX;
+        const ctx = c.getContext('2d');
+
+        // Fondo piel
+        ctx.fillStyle = '#2a1810';
+        ctx.fillRect(0, 0, TEX, TEX);
+        // Grano
+        const imgData = ctx.getImageData(0, 0, TEX, TEX);
+        const d = imgData.data;
+        for (let i = 0; i < d.length; i += 4) {
+            const n = (Math.random() - 0.5) * 20;
+            d[i] = Math.max(0, Math.min(255, d[i] + n));
+            d[i+1] = Math.max(0, Math.min(255, d[i+1] + n));
+            d[i+2] = Math.max(0, Math.min(255, d[i+2] + n));
+        }
+        ctx.putImageData(imgData, 0, 0);
+
+        // Marco dorado
+        ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 4;
+        ctx.strokeRect(25, 25, TEX - 50, TEX - 50);
+        ctx.strokeStyle = 'rgba(212,175,55,0.3)'; ctx.lineWidth = 1;
+        ctx.strokeRect(40, 40, TEX - 80, TEX - 80);
+
+        // Esquinas decorativas
+        [[30,30,1,1],[TEX-30,30,-1,1],[30,TEX-30,1,-1],[TEX-30,TEX-30,-1,-1]].forEach(([x,y,dx,dy]) => {
+            ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(x, y+dy*20); ctx.lineTo(x, y); ctx.lineTo(x+dx*20, y); ctx.stroke();
+        });
+
+        // Foto central
+        if (coverImage) {
+            const pad = 80;
+            const photoSize = TEX - pad * 2;
+            const imgRatio = coverImage.width / coverImage.height;
+            let sx = 0, sy = 0, sw = coverImage.width, sh = coverImage.height;
+            if (imgRatio > 1) { sw = sh; sx = (coverImage.width - sw) / 2; }
+            else if (imgRatio < 1) { sh = sw; sy = (coverImage.height - sh) / 2; }
+
+            // Borde dorado de la foto
+            ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 3;
+            ctx.strokeRect(pad - 4, pad - 4, photoSize + 8, photoSize + 8);
+
+            ctx.drawImage(coverImage, sx, sy, sw, sh, pad, pad, photoSize, photoSize);
+        }
+
+        // Texto debajo de la foto
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#d4af37'; ctx.font = 'bold 36px "Segoe UI"';
+        ctx.fillText('XV A\u00D1OS', TEX / 2, TEX - 95);
+        ctx.fillStyle = '#fff8e7'; ctx.font = '300 28px "Segoe UI"';
+        ctx.fillText('N A O M I', TEX / 2, TEX - 55);
+
+        const tex = new THREE.CanvasTexture(c);
+        tex.encoding = THREE.sRGBEncoding;
+        return tex;
+    }
+
+    // Interior de la caja (terciopelo)
+    function createVelvetTexture() {
+        const c = document.createElement('canvas');
+        c.width = 256; c.height = 256;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#1a0a1a';
+        ctx.fillRect(0, 0, 256, 256);
+        const imgData = ctx.getImageData(0, 0, 256, 256);
+        const d = imgData.data;
+        for (let i = 0; i < d.length; i += 4) {
+            const n = (Math.random() - 0.5) * 12;
+            d[i] = Math.max(0, Math.min(255, d[i] + n));
+            d[i+1] = Math.max(0, Math.min(255, d[i+1] + n));
+            d[i+2] = Math.max(0, Math.min(255, d[i+2] + n));
+        }
+        ctx.putImageData(imgData, 0, 0);
+        const tex = new THREE.CanvasTexture(c);
+        tex.encoding = THREE.sRGBEncoding;
+        return tex;
+    }
+
+    // =============================================
+    // INIT
+    // =============================================
+    function init() {
+        scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x0a0a0f, 0.02);
+
+        camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 100);
+        camera.position.set(0, 3, camDist);
+        camera.lookAt(0, 0, 0);
+
+        const canvas = document.getElementById('box-canvas');
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+        renderer.setSize(innerWidth, innerHeight);
+        renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.1;
+
+        // Luces
+        scene.add(new THREE.AmbientLight(0x8080a0, 0.4));
+        const mainLight = new THREE.DirectionalLight(0xfff8e7, 0.9);
+        mainLight.position.set(5, 8, 5);
+        mainLight.castShadow = true;
+        mainLight.shadow.mapSize.set(2048, 2048);
+        scene.add(mainLight);
+
+        const goldLight = new THREE.PointLight(0xd4af37, 0.6, 25);
+        goldLight.position.set(-4, 3, 4); scene.add(goldLight);
+        const rimLight = new THREE.PointLight(0xffffff, 0.3, 15);
+        rimLight.position.set(0, -2, 6); scene.add(rimLight);
+
+        // Piso
+        const ground = new THREE.Mesh(
+            new THREE.PlaneGeometry(40, 40),
+            new THREE.MeshPhongMaterial({ color: 0x080808, specular: 0x1a1209, shininess: 40 })
+        );
+        ground.rotation.x = -Math.PI / 2; ground.position.y = -2.5;
+        ground.receiveShadow = true; scene.add(ground);
+
+        // Particulas
+        createParticles();
+        // Caja
+        createBox();
+        // Mini canvas esquina
+        drawCornerCanvas();
+        // Eventos
+        setupEvents();
+        // Loop
+        animate();
+
+        setTimeout(() => document.getElementById('loader').classList.add('hidden'), 600);
+    }
+
+    function createParticles() {
+        const count = 40;
+        const pos = new Float32Array(count * 3);
+        for (let i = 0; i < count * 3; i += 3) {
+            pos[i] = (Math.random() - 0.5) * 12;
+            pos[i+1] = (Math.random() - 0.5) * 8;
+            pos[i+2] = (Math.random() - 0.5) * 12;
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        const pts = new THREE.Points(geo, new THREE.PointsMaterial({
+            color: 0xd4af37, size: 0.04, transparent: true, opacity: 0.4
+        }));
+        pts.userData.isParticles = true;
+        scene.add(pts);
+    }
+
+    // =============================================
+    // CREAR CAJA 3D
+    // =============================================
+    function createBox() {
+        boxGroup = new THREE.Group();
+
+        const leatherTex = createLeatherTexture(512, 512, '#2a1810');
+        const leatherMat = new THREE.MeshPhongMaterial({
+            map: leatherTex, specular: 0x332211, shininess: 15
+        });
+        const velvetTex = createVelvetTexture();
+        const velvetMat = new THREE.MeshPhongMaterial({
+            map: velvetTex, specular: 0x110011, shininess: 5
+        });
+        const goldMat = new THREE.MeshPhongMaterial({
+            color: 0xd4af37, emissive: 0x4a3a0a, emissiveIntensity: 0.15,
+            specular: 0xffd700, shininess: 80
+        });
+
+        // --- BASE de la caja (hueca) ---
+        // Piso
+        const floor = new THREE.Mesh(
+            new THREE.BoxGeometry(BW, WALL, BD), leatherMat
+        );
+        floor.position.y = -BH / 2;
+        floor.castShadow = true; floor.receiveShadow = true;
+        boxGroup.add(floor);
+
+        // Interior piso
+        const floorInner = new THREE.Mesh(
+            new THREE.PlaneGeometry(BW - WALL * 2, BD - WALL * 2), velvetMat
+        );
+        floorInner.rotation.x = -Math.PI / 2;
+        floorInner.position.y = -BH / 2 + WALL / 2 + 0.01;
+        boxGroup.add(floorInner);
+
+        // Paredes (4)
+        const wallData = [
+            { w: BW, d: WALL, x: 0, z: BD / 2 },       // frente
+            { w: BW, d: WALL, x: 0, z: -BD / 2 },      // atras
+            { w: WALL, d: BD, x: -BW / 2, z: 0 },      // izquierda
+            { w: WALL, d: BD, x: BW / 2, z: 0 },       // derecha
+        ];
+        wallData.forEach(wd => {
+            const wall = new THREE.Mesh(
+                new THREE.BoxGeometry(wd.w, BH, wd.d), leatherMat
+            );
+            wall.position.set(wd.x, 0, wd.z);
+            wall.castShadow = true;
+            boxGroup.add(wall);
+        });
+
+        // Bordes dorados en la base
+        const baseEdgeGeo = new THREE.BoxGeometry(BW + 0.04, 0.04, BD + 0.04);
+        const topEdge = new THREE.Mesh(baseEdgeGeo, goldMat);
+        topEdge.position.y = BH / 2;
+        boxGroup.add(topEdge);
+        const botEdge = new THREE.Mesh(baseEdgeGeo, goldMat);
+        botEdge.position.y = -BH / 2 - WALL / 2;
+        boxGroup.add(botEdge);
+
+        // --- TAPA (se abre como bisagra atras) ---
+        lidGroup = new THREE.Group();
+        // La bisagra esta en el borde trasero (z = -BD/2)
+        lidGroup.position.set(0, BH / 2, -BD / 2);
+
+        const lidTex = createLidTexture();
+        // Cuerpo de la tapa
+        const lidBody = new THREE.Mesh(
+            new THREE.BoxGeometry(BW + 0.06, LH, BD + 0.06),
+            leatherMat
+        );
+        lidBody.position.set(0, LH / 2, BD / 2);
+        lidGroup.add(lidBody);
+
+        // Foto/decoracion en la cara superior de la tapa
+        const lidTop = new THREE.Mesh(
+            new THREE.PlaneGeometry(BW - 0.1, BD - 0.1),
+            new THREE.MeshPhongMaterial({ map: lidTex, specular: 0x222211, shininess: 10 })
+        );
+        lidTop.rotation.x = -Math.PI / 2;
+        lidTop.position.set(0, LH + 0.005, BD / 2);
+        lidGroup.add(lidTop);
+
+        // Interior tapa (terciopelo)
+        const lidInner = new THREE.Mesh(
+            new THREE.PlaneGeometry(BW - 0.2, BD - 0.2), velvetMat
+        );
+        lidInner.rotation.x = Math.PI / 2;
+        lidInner.position.set(0, 0.005, BD / 2);
+        lidGroup.add(lidInner);
+
+        // Borde dorado tapa
+        const lidEdges = new THREE.LineSegments(
+            new THREE.EdgesGeometry(new THREE.BoxGeometry(BW + 0.06, LH, BD + 0.06)),
+            new THREE.LineBasicMaterial({ color: 0xd4af37, transparent: true, opacity: 0.5 })
+        );
+        lidEdges.position.set(0, LH / 2, BD / 2);
+        lidGroup.add(lidEdges);
+
+        boxGroup.add(lidGroup);
+
+        // Posicion de la caja
+        boxGroup.position.y = -0.3;
+        scene.add(boxGroup);
+    }
+
+    // =============================================
+    // MINI CANVAS ESQUINA
+    // =============================================
+    function drawCornerCanvas() {
+        const c = document.getElementById('corner-canvas');
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#2a1810';
+        ctx.fillRect(0, 0, 96, 96);
+        // Grano
+        const imgData = ctx.getImageData(0, 0, 96, 96);
+        const d = imgData.data;
+        for (let i = 0; i < d.length; i += 4) {
+            const n = (Math.random() - 0.5) * 20;
+            d[i] = Math.max(0, Math.min(255, d[i] + n));
+            d[i+1] = Math.max(0, Math.min(255, d[i+1] + n));
+            d[i+2] = Math.max(0, Math.min(255, d[i+2] + n));
+        }
+        ctx.putImageData(imgData, 0, 0);
+        // Marco
+        ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 2;
+        ctx.strokeRect(4, 4, 88, 88);
+        // Foto mini
+        if (coverImage) {
+            const s = Math.min(coverImage.width, coverImage.height);
+            ctx.drawImage(coverImage, (coverImage.width-s)/2, 0, s, s, 12, 12, 72, 72);
+        }
+    }
+
+    // =============================================
+    // ABRIR / CERRAR CAJA
+    // =============================================
+    function openBox() {
+        if (boxOpened || isTransitioning) return;
+        isTransitioning = true;
+        boxOpened = true;
+        autoRotate = false;
+
+        // Rotar a posicion frontal
+        targetRotY = 0;
+        targetRotX = -0.4;
+
+        // Abrir tapa
+        targetLidAngle = -Math.PI * 0.75;
+
+        // Despues de la animacion de apertura, mostrar album
+        setTimeout(() => {
+            // Ocultar UI de caja
+            document.getElementById('boxUI').classList.add('hidden');
+            document.getElementById('box-canvas').style.transition = 'opacity 0.8s';
+            document.getElementById('box-canvas').style.opacity = '0';
+
+            // Mostrar album
+            const frame = document.getElementById('album-frame');
+            frame.src = 'https://arturocruzarm.github.io/fotolibro/album.html';
+            setTimeout(() => {
+                frame.classList.add('visible');
+                document.getElementById('cornerBox').classList.add('visible');
+                isTransitioning = false;
+            }, 400);
+        }, 1800);
+    }
+
+    function closeBox() {
+        if (!boxOpened || isTransitioning) return;
+        isTransitioning = true;
+
+        // Ocultar album y corner
+        document.getElementById('album-frame').classList.remove('visible');
+        document.getElementById('cornerBox').classList.remove('visible');
+
+        setTimeout(() => {
+            document.getElementById('album-frame').src = 'about:blank';
+
+            // Mostrar caja de nuevo
+            document.getElementById('box-canvas').style.opacity = '1';
+            document.getElementById('boxUI').classList.remove('hidden');
+
+            // Cerrar tapa
+            targetLidAngle = 0;
+            autoRotate = true;
+            targetRotY = -0.3;
+            targetRotX = -0.2;
+
+            setTimeout(() => {
+                boxOpened = false;
+                isTransitioning = false;
+            }, 1200);
+        }, 600);
+    }
+
+    // =============================================
+    // EVENTS
+    // =============================================
+    function setupEvents() {
+        const canvas = document.getElementById('box-canvas');
+
+        canvas.addEventListener('click', (e) => {
+            if (!boxOpened) openBox();
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            mouseDown = true; autoRotate = false;
+            prevMouse = { x: e.clientX, y: e.clientY };
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (!mouseDown || boxOpened) return;
+            targetRotY += (e.clientX - prevMouse.x) * 0.005;
+            targetRotX += (e.clientY - prevMouse.y) * 0.005;
+            targetRotX = Math.max(-1, Math.min(0.3, targetRotX));
+            prevMouse = { x: e.clientX, y: e.clientY };
+        });
+        document.addEventListener('mouseup', () => { mouseDown = false; });
+
+        canvas.addEventListener('touchstart', (e) => {
+            mouseDown = true; autoRotate = false;
+            prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            if (!mouseDown || boxOpened) return;
+            targetRotY += (e.touches[0].clientX - prevMouse.x) * 0.005;
+            targetRotX += (e.touches[0].clientY - prevMouse.y) * 0.005;
+            targetRotX = Math.max(-1, Math.min(0.3, targetRotX));
+            prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        });
+        canvas.addEventListener('touchend', () => { mouseDown = false; });
+
+        canvas.addEventListener('wheel', (e) => {
+            if (boxOpened) return;
+            e.preventDefault();
+            targetCamDist += e.deltaY * 0.01;
+            targetCamDist = Math.max(5, Math.min(16, targetCamDist));
+        }, { passive: false });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = innerWidth / innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(innerWidth, innerHeight);
+        });
+
+        // Keyboard
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                if (!boxOpened) openBox();
+            } else if (e.key === 'Escape') {
+                if (boxOpened) closeBox();
+            }
+        });
+    }
+
+    // =============================================
+    // ANIMATION
+    // =============================================
+    function animate() {
+        requestAnimationFrame(animate);
+
+        if (autoRotate && !boxOpened) targetRotY += 0.002;
+
+        rotX += (targetRotX - rotX) * 0.05;
+        rotY += (targetRotY - rotY) * 0.05;
+
+        if (boxGroup) {
+            boxGroup.rotation.x = rotX;
+            boxGroup.rotation.y = rotY;
+            boxGroup.position.y = -0.3 + Math.sin(Date.now() * 0.0008) * 0.08;
+        }
+
+        // Tapa
+        if (lidGroup) {
+            lidAngle += (targetLidAngle - lidAngle) * 0.04;
+            lidGroup.rotation.x = lidAngle;
+        }
+
+        // Camara
+        camDist += (targetCamDist - camDist) * 0.05;
+        camera.position.set(0, 2.5, camDist);
+        camera.lookAt(0, 0, 0);
+
+        // Particulas
+        scene.children.forEach(c => {
+            if (c.userData && c.userData.isParticles) {
+                c.rotation.y += 0.0003;
+                c.position.y = Math.sin(Date.now() * 0.0005) * 0.15;
+            }
+        });
+
+        renderer.render(scene, camera);
+    }
+
+    // =============================================
+    // START
+    // =============================================
+    window.addEventListener('DOMContentLoaded', () => {
+        const img = new Image();
+        img.onload = () => { coverImage = img; init(); };
+        img.onerror = () => { coverImage = null; init(); };
+        img.src = 'album1/portada.jpeg';
+    });
+    </script>
+</body>
+</html>
