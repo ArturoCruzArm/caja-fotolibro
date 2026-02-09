@@ -452,34 +452,40 @@
         floorInner.position.y = -BH / 2 + WALL / 2 + 0.01;
         boxGroup.add(floorInner);
 
-        // Paredes (4) — exterior piel, interior terciopelo
-        const wallData = [
-            { w: BW, d: WALL, x: 0, z: BD / 2, inner: 'z-' },    // frente
-            { w: BW, d: WALL, x: 0, z: -BD / 2, inner: 'z+' },   // atras
-            { w: WALL, d: BD, x: -BW / 2, z: 0, inner: 'x+' },   // izquierda
-            { w: WALL, d: BD, x: BW / 2, z: 0, inner: 'x-' },    // derecha
+        // Paredes (4) — piel exterior, terciopelo interior
+        const innerW = BW - WALL * 2;
+        const innerD = BD - WALL * 2;
+        const wallDefs = [
+            { geo: [BW, BH, WALL], pos: [0, 0, BD/2] },          // frente
+            { geo: [BW, BH, WALL], pos: [0, 0, -BD/2] },         // atras
+            { geo: [WALL, BH, BD], pos: [-BW/2, 0, 0] },         // izquierda
+            { geo: [WALL, BH, BD], pos: [BW/2, 0, 0] },          // derecha
         ];
-        wallData.forEach(wd => {
+        wallDefs.forEach(wd => {
             const wall = new THREE.Mesh(
-                new THREE.BoxGeometry(wd.w, BH, wd.d), leatherMat
+                new THREE.BoxGeometry(wd.geo[0], wd.geo[1], wd.geo[2]), leatherMat
             );
-            wall.position.set(wd.x, 0, wd.z);
+            wall.position.set(wd.pos[0], wd.pos[1], wd.pos[2]);
             wall.castShadow = true;
             boxGroup.add(wall);
-
-            // Cara interior de terciopelo
-            const isZ = wd.inner.startsWith('z');
-            const innerW = isZ ? (BW - WALL * 2) : (BD - WALL * 2);
-            const innerPlane = new THREE.Mesh(
-                new THREE.PlaneGeometry(innerW, BH - 0.02), velvetMat
-            );
-            innerPlane.position.set(wd.x, 0, wd.z);
-            if (wd.inner === 'z-') { innerPlane.position.z -= WALL / 2 + 0.005; innerPlane.rotation.y = Math.PI; }
-            if (wd.inner === 'z+') { innerPlane.position.z += WALL / 2 + 0.005; }
-            if (wd.inner === 'x+') { innerPlane.position.x += WALL / 2 + 0.005; innerPlane.rotation.y = Math.PI / 2; }
-            if (wd.inner === 'x-') { innerPlane.position.x -= WALL / 2 + 0.005; innerPlane.rotation.y = -Math.PI / 2; }
-            boxGroup.add(innerPlane);
         });
+
+        // Interior terciopelo (4 planos pegados a las paredes interiores)
+        // Frente interior
+        const vf = new THREE.Mesh(new THREE.PlaneGeometry(innerW, BH), velvetMat);
+        vf.position.set(0, 0, BD/2 - WALL); boxGroup.add(vf);
+        // Atras interior
+        const vb = new THREE.Mesh(new THREE.PlaneGeometry(innerW, BH), velvetMat);
+        vb.rotation.y = Math.PI;
+        vb.position.set(0, 0, -BD/2 + WALL); boxGroup.add(vb);
+        // Izquierda interior
+        const vl = new THREE.Mesh(new THREE.PlaneGeometry(innerD, BH), velvetMat);
+        vl.rotation.y = Math.PI / 2;
+        vl.position.set(-BW/2 + WALL, 0, 0); boxGroup.add(vl);
+        // Derecha interior
+        const vr = new THREE.Mesh(new THREE.PlaneGeometry(innerD, BH), velvetMat);
+        vr.rotation.y = -Math.PI / 2;
+        vr.position.set(BW/2 - WALL, 0, 0); boxGroup.add(vr);
 
         // Bordes dorados en la base
         const baseEdgeGeo = new THREE.BoxGeometry(BW + 0.04, 0.04, BD + 0.04);
@@ -491,10 +497,10 @@
         boxGroup.add(botEdge);
 
         // --- FOTOLIBRO CERRADO dentro de la caja ---
-        const albumW = BW - WALL * 6;
-        const albumD = BD - WALL * 6;
-        const albumH = 0.45;
-        const albumY = -BH / 2 + WALL / 2 + albumH / 2 + 0.02;
+        const albumW = 3.2;   // mas chico que el interior para que se vea espacio
+        const albumD = 3.2;
+        const albumH = 0.25;  // delgado como un libro real
+        const albumY = -BH / 2 + WALL / 2 + albumH / 2 + 0.01;
 
         // Cuerpo del album (piel oscura morada)
         const albumBodyMat = new THREE.MeshPhongMaterial({
