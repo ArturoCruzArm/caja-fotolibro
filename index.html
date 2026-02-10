@@ -164,8 +164,8 @@
             <p>ALBUM PREMIUM</p>
         </div>
         <div class="open-hint" id="openHint">
-            <div class="hint-icon" onclick="openBox()">&#9654;</div>
-            <span>ABRIR CAJA</span>
+            <div class="hint-icon" id="hintIcon" onclick="toggleBox()">&#9654;</div>
+            <span id="hintText">ABRIR CAJA</span>
         </div>
         <div class="brand-footer">Desarrollado por Arturo Cruz &mdash; <a href="https://foro7.invitados.org" target="_blank" style="color:rgba(212,175,55,0.35);text-decoration:none;">Producciones Foro 7</a></div>
     </div>
@@ -508,6 +508,12 @@
     // =============================================
     // ABRIR / CERRAR CAJA
     // =============================================
+    function toggleBox() {
+        if (isTransitioning) return;
+        if (!boxOpened) openBox();
+        else closeBox();
+    }
+
     function openBox() {
         if (boxOpened || isTransitioning) return;
         isTransitioning = true;
@@ -517,12 +523,10 @@
         // Levantar tapa
         targetLidLift = 3.5;
 
-        // Ocultar hint de abrir
-        document.getElementById('openHint').style.opacity = '0';
-
-        // Despues de la animacion de apertura, mostrar boton cerrar
+        // Cambiar hint a cerrar
         setTimeout(() => {
-            document.getElementById('cornerBox').classList.add('visible');
+            document.getElementById('hintIcon').innerHTML = '&#9724;';
+            document.getElementById('hintText').textContent = 'CERRAR CAJA';
             isTransitioning = false;
         }, 1800);
     }
@@ -531,23 +535,17 @@
         if (!boxOpened || isTransitioning) return;
         isTransitioning = true;
 
-        // Ocultar corner
-        document.getElementById('cornerBox').classList.remove('visible');
+        // Bajar tapa
+        targetLidLift = 0;
+        autoRotate = true;
 
+        // Cambiar hint a abrir
         setTimeout(() => {
-
-            // Bajar tapa
-            targetLidLift = 0;
-            autoRotate = true;
-
-            // Restaurar hint
-            document.getElementById('openHint').style.opacity = '1';
-
-            setTimeout(() => {
-                boxOpened = false;
-                isTransitioning = false;
-            }, 1200);
-        }, 600);
+            document.getElementById('hintIcon').innerHTML = '&#9654;';
+            document.getElementById('hintText').textContent = 'ABRIR CAJA';
+            boxOpened = false;
+            isTransitioning = false;
+        }, 1200);
     }
 
     // =============================================
@@ -559,11 +557,7 @@
         let mouseDownPos = { x: 0, y: 0 };
 
         canvas.addEventListener('click', (e) => {
-            // Solo toggle si no fue un drag
-            if (dragDistance < 5) {
-                if (!boxOpened) openBox();
-                else closeBox();
-            }
+            if (dragDistance < 5) toggleBox();
         });
 
         canvas.addEventListener('mousedown', (e) => {
@@ -596,10 +590,7 @@
             prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         });
         canvas.addEventListener('touchend', () => {
-            if (dragDistance < 10) {
-                if (!boxOpened) openBox();
-                else closeBox();
-            }
+            if (dragDistance < 10) toggleBox();
             mouseDown = false;
         });
 
@@ -617,10 +608,8 @@
 
         // Keyboard
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                if (!boxOpened) openBox();
-            } else if (e.key === 'Escape') {
-                if (boxOpened) closeBox();
+            if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+                toggleBox();
             }
         });
     }
