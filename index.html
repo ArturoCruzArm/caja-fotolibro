@@ -426,151 +426,28 @@
         const leatherMat = new THREE.MeshPhongMaterial({
             map: leatherTex, specular: 0x332211, shininess: 15
         });
-        const velvetTex = createVelvetTexture();
-        const velvetMat = new THREE.MeshPhongMaterial({
-            map: velvetTex, specular: 0x110011, shininess: 5
-        });
-        const goldMat = new THREE.MeshPhongMaterial({
-            color: 0xd4af37, emissive: 0x4a3a0a, emissiveIntensity: 0.15,
-            specular: 0xffd700, shininess: 80
-        });
 
-        // --- BASE de la caja (hueca) ---
-        // Piso
+        // --- FONDO ---
         const floor = new THREE.Mesh(
             new THREE.BoxGeometry(BW, WALL, BD), leatherMat
         );
         floor.position.y = -BH / 2;
-        floor.castShadow = true; floor.receiveShadow = true;
         boxGroup.add(floor);
 
-        // Interior piso
-        const floorInner = new THREE.Mesh(
-            new THREE.PlaneGeometry(BW - WALL * 2, BD - WALL * 2), velvetMat
-        );
-        floorInner.rotation.x = -Math.PI / 2;
-        floorInner.position.y = -BH / 2 + WALL / 2 + 0.01;
-        boxGroup.add(floorInner);
-
-        // Paredes (4) — piel exterior, terciopelo interior
-        const innerW = BW - WALL * 2;
-        const innerD = BD - WALL * 2;
+        // --- PAREDES (4) ---
         const wallDefs = [
-            { geo: [BW, BH, WALL], pos: [0, 0, BD/2] },          // frente
-            { geo: [BW, BH, WALL], pos: [0, 0, -BD/2] },         // atras
-            { geo: [WALL, BH, BD], pos: [-BW/2, 0, 0] },         // izquierda
-            { geo: [WALL, BH, BD], pos: [BW/2, 0, 0] },          // derecha
+            { geo: [BW, BH, WALL], pos: [0, 0, BD/2] },
+            { geo: [BW, BH, WALL], pos: [0, 0, -BD/2] },
+            { geo: [WALL, BH, BD], pos: [-BW/2, 0, 0] },
+            { geo: [WALL, BH, BD], pos: [BW/2, 0, 0] },
         ];
         wallDefs.forEach(wd => {
             const wall = new THREE.Mesh(
                 new THREE.BoxGeometry(wd.geo[0], wd.geo[1], wd.geo[2]), leatherMat
             );
             wall.position.set(wd.pos[0], wd.pos[1], wd.pos[2]);
-            wall.castShadow = true;
             boxGroup.add(wall);
         });
-
-        // Interior terciopelo (4 planos pegados a las paredes interiores)
-        // Frente interior
-        const vf = new THREE.Mesh(new THREE.PlaneGeometry(innerW, BH), velvetMat);
-        vf.position.set(0, 0, BD/2 - WALL); boxGroup.add(vf);
-        // Atras interior
-        const vb = new THREE.Mesh(new THREE.PlaneGeometry(innerW, BH), velvetMat);
-        vb.rotation.y = Math.PI;
-        vb.position.set(0, 0, -BD/2 + WALL); boxGroup.add(vb);
-        // Izquierda interior
-        const vl = new THREE.Mesh(new THREE.PlaneGeometry(innerD, BH), velvetMat);
-        vl.rotation.y = Math.PI / 2;
-        vl.position.set(-BW/2 + WALL, 0, 0); boxGroup.add(vl);
-        // Derecha interior
-        const vr = new THREE.Mesh(new THREE.PlaneGeometry(innerD, BH), velvetMat);
-        vr.rotation.y = -Math.PI / 2;
-        vr.position.set(BW/2 - WALL, 0, 0); boxGroup.add(vr);
-
-        // Bordes dorados en la base
-        const baseEdgeGeo = new THREE.BoxGeometry(BW + 0.04, 0.04, BD + 0.04);
-        const topEdge = new THREE.Mesh(baseEdgeGeo, goldMat);
-        topEdge.position.y = BH / 2;
-        boxGroup.add(topEdge);
-        const botEdge = new THREE.Mesh(baseEdgeGeo, goldMat);
-        botEdge.position.y = -BH / 2 - WALL / 2;
-        boxGroup.add(botEdge);
-
-        // --- FOTOLIBRO CERRADO dentro de la caja ---
-        const albumW = 3.2;   // mas chico que el interior para que se vea espacio
-        const albumD = 3.2;
-        const albumH = 0.25;  // delgado como un libro real
-        const albumY = -BH / 2 + WALL / 2 + albumH / 2 + 0.01;
-
-        // Cuerpo del album (piel oscura morada)
-        const albumBodyMat = new THREE.MeshPhongMaterial({
-            color: 0x1a0a20, specular: 0x332244, shininess: 20
-        });
-        const albumBody = new THREE.Mesh(
-            new THREE.BoxGeometry(albumW, albumH, albumD), albumBodyMat
-        );
-        albumBody.position.y = albumY;
-        boxGroup.add(albumBody);
-
-        // Portada (cara superior) con textura procedural
-        (function() {
-            const TEX = 512;
-            const cc = document.createElement('canvas');
-            cc.width = TEX; cc.height = TEX;
-            const cx = cc.getContext('2d');
-
-            // Fondo piel oscura
-            cx.fillStyle = '#1a0a20';
-            cx.fillRect(0, 0, TEX, TEX);
-            // Grano sutil
-            for (let i = 0; i < 8000; i++) {
-                cx.fillStyle = 'rgba(255,255,255,' + (Math.random() * 0.03) + ')';
-                cx.fillRect(Math.random() * TEX, Math.random() * TEX, 1, 1);
-            }
-
-            // Marco dorado fino
-            cx.strokeStyle = '#b8962e'; cx.lineWidth = 2;
-            cx.strokeRect(20, 20, TEX - 40, TEX - 40);
-
-            // Foto de portada (solo si no tainted)
-            if (coverImage && canUseImageInCanvas) {
-                const pad = 40;
-                const photoW = TEX - pad * 2;
-                const photoH = TEX - pad * 2 - 30;
-                const s = Math.min(coverImage.width, coverImage.height);
-                cx.drawImage(coverImage, (coverImage.width - s) / 2, 0, s, s, pad, pad, photoW, photoH);
-            }
-
-            // Texto
-            cx.fillStyle = '#b8962e'; cx.font = 'bold 20px serif';
-            cx.textAlign = 'center';
-            cx.fillText('XV AÑOS NAOMI', TEX / 2, TEX - 25);
-
-            const coverTex = new THREE.CanvasTexture(cc);
-            const coverPlane = new THREE.Mesh(
-                new THREE.PlaneGeometry(albumW - 0.05, albumD - 0.05),
-                new THREE.MeshPhongMaterial({ map: coverTex, specular: 0x111111, shininess: 8 })
-            );
-            coverPlane.rotation.x = -Math.PI / 2;
-            coverPlane.position.y = albumY + albumH / 2 + 0.005;
-            boxGroup.add(coverPlane);
-        })();
-
-        // Lomo del album (borde izquierdo, dorado sutil)
-        const albumSpine = new THREE.Mesh(
-            new THREE.BoxGeometry(0.05, albumH + 0.01, albumD - 0.1),
-            new THREE.MeshPhongMaterial({ color: 0x8a7030, specular: 0x443322, shininess: 30 })
-        );
-        albumSpine.position.set(-albumW / 2 + 0.025, albumY, 0);
-        boxGroup.add(albumSpine);
-
-        // Paginas visibles (borde derecho, crema)
-        const pagesEdge = new THREE.Mesh(
-            new THREE.BoxGeometry(0.03, albumH - 0.06, albumD - 0.2),
-            new THREE.MeshPhongMaterial({ color: 0xe8e0d0, specular: 0x111111, shininess: 3 })
-        );
-        pagesEdge.position.set(albumW / 2 - 0.015, albumY, 0);
-        boxGroup.add(pagesEdge);
 
         // --- TAPA (pieza separada que se levanta) ---
         lidGroup = new THREE.Group();
@@ -592,21 +469,6 @@
         lidTop.rotation.x = -Math.PI / 2;
         lidTop.position.set(0, LH / 2 + 0.005, 0);
         lidGroup.add(lidTop);
-
-        // Interior tapa (terciopelo)
-        const lidInner = new THREE.Mesh(
-            new THREE.PlaneGeometry(BW - 0.2, BD - 0.2), velvetMat
-        );
-        lidInner.rotation.x = Math.PI / 2;
-        lidInner.position.set(0, -LH / 2 + 0.005, 0);
-        lidGroup.add(lidInner);
-
-        // Borde dorado tapa
-        const lidEdges = new THREE.LineSegments(
-            new THREE.EdgesGeometry(new THREE.BoxGeometry(BW + 0.06, LH, BD + 0.06)),
-            new THREE.LineBasicMaterial({ color: 0xd4af37, transparent: true, opacity: 0.5 })
-        );
-        lidGroup.add(lidEdges);
 
         boxGroup.add(lidGroup);
 
