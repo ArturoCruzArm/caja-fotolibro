@@ -188,8 +188,8 @@
     let lidLift = 0, targetLidLift = 0;
     let autoRotate = true;
     let mouseDown = false, prevMouse = { x: 0, y: 0 };
-    let rotY = -0.3, rotX = -0.2;
-    let targetRotY = -0.3, targetRotX = -0.2;
+    let rotY = -0.4, rotX = -0.2;
+    let targetRotY = -0.4, targetRotX = -0.2;
     let camDist = 9, targetCamDist = 9;
     let boxOpened = false, isTransitioning = false;
     let coverImage = null;
@@ -577,7 +577,7 @@
             dragDistance += Math.abs(e.clientX - prevMouse.x) + Math.abs(e.clientY - prevMouse.y);
             targetRotY += (e.clientX - prevMouse.x) * 0.005;
             targetRotX += (e.clientY - prevMouse.y) * 0.005;
-            targetRotX = Math.max(-1, Math.min(0.3, targetRotX));
+            targetRotX = Math.max(-1.4, Math.min(0.3, targetRotX));
             prevMouse = { x: e.clientX, y: e.clientY };
         });
         document.addEventListener('mouseup', () => { mouseDown = false; });
@@ -592,7 +592,7 @@
             dragDistance += Math.abs(e.touches[0].clientX - prevMouse.x) + Math.abs(e.touches[0].clientY - prevMouse.y);
             targetRotY += (e.touches[0].clientX - prevMouse.x) * 0.005;
             targetRotX += (e.touches[0].clientY - prevMouse.y) * 0.005;
-            targetRotX = Math.max(-1, Math.min(0.3, targetRotX));
+            targetRotX = Math.max(-1.4, Math.min(0.3, targetRotX));
             prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         });
         canvas.addEventListener('touchend', () => {
@@ -650,7 +650,7 @@
 
         // Camara
         camDist += (targetCamDist - camDist) * 0.05;
-        camera.position.set(0, 2.5, camDist);
+        camera.position.set(0, camDist * 0.7, camDist * 0.7);
         camera.lookAt(0, 0, 0);
 
         // Particulas
